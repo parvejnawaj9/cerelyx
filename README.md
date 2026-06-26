@@ -193,3 +193,5 @@ The real project is **`cerelyx`** and its config is already wired into
   free-drag invitation canvas, admin dashboard. (OTP/WhatsApp verification plugs
   into the existing `verifyAccess` seam.)
 - **Phase 5** — SEO/OG/structured data, performance, accessibility, responsive QA.
+#   c e r e l y x  
+ 
