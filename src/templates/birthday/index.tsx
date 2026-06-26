@@ -21,6 +21,8 @@ import {
   formatTime,
   directionsUrl,
 } from "@/templates/shared/format";
+import { SharedSection, type RenderContext } from "@/templates/shared/sections";
+import { MapEmbed } from "@/templates/shared/map";
 
 const displayFont: CSSProperties = { fontFamily: "var(--site-display)" };
 
@@ -82,7 +84,15 @@ function ConfettiBurst({ className = "" }: { className?: string }) {
   );
 }
 
-export function BirthdaySite({ site, lang }: { site: Site; lang?: string }) {
+export function BirthdaySite({
+  site,
+  lang,
+  ctx,
+}: {
+  site: Site;
+  lang?: string;
+  ctx?: RenderContext;
+}) {
   const locale = lang ?? site.defaultLanguage ?? "en";
   const c: SiteContent =
     site.content?.[locale] ??
@@ -107,11 +117,20 @@ export function BirthdaySite({ site, lang }: { site: Site; lang?: string }) {
           case "gallery":
             return <Gallery key={s.id} d={c.gallery} />;
           case "rsvp":
-            return <Rsvp key={s.id} d={c.rsvp} subdomain={site.subdomain} />;
+            return (
+              <Rsvp
+                key={s.id}
+                d={c.rsvp}
+                subdomain={site.subdomain}
+                guestName={ctx?.guestName}
+              />
+            );
           case "footer":
             return <Footer key={s.id} d={c.footer} hero={c.hero} />;
           default:
-            return null;
+            return (
+              <SharedSection key={s.id} block={s} content={c} site={site} ctx={ctx} />
+            );
         }
       })}
     </div>
@@ -257,6 +276,17 @@ function Story({ d }: { d?: StoryData }) {
                   >
                     {item.body}
                   </p>
+                  {item.imagePath && (
+                    <div className="relative mt-4 aspect-[16/10] w-full max-w-sm overflow-hidden rounded-[1.25rem]">
+                      <Image
+                        src={storageUrl(item.imagePath)}
+                        alt={item.title || "Story photo"}
+                        fill
+                        sizes="(max-width: 640px) 100vw, 24rem"
+                        className="object-cover"
+                      />
+                    </div>
+                  )}
                 </li>
               </Reveal>
             ))}
@@ -337,6 +367,17 @@ function Events({ d }: { d?: EventsData }) {
                     {i + 1}
                   </div>
                   <div className="flex flex-1 flex-col gap-1">
+                    {ev.imagePath && (
+                      <div className="relative mb-2 aspect-[16/9] w-full overflow-hidden rounded-[1.25rem]">
+                        <Image
+                          src={storageUrl(ev.imagePath)}
+                          alt={ev.name || "Event photo"}
+                          fill
+                          sizes="(max-width: 640px) 100vw, 28rem"
+                          className="object-cover"
+                        />
+                      </div>
+                    )}
                     <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                       <h3
                         className="text-xl font-extrabold sm:text-2xl"
@@ -373,6 +414,17 @@ function Events({ d }: { d?: EventsData }) {
                       >
                         {ev.description}
                       </p>
+                    )}
+                    {directionsUrl(ev.mapUrl, ev.address) && (
+                      <a
+                        href={directionsUrl(ev.mapUrl, ev.address)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-1.5 inline-flex w-fit items-center gap-1 text-sm font-extrabold"
+                        style={{ color: "var(--site-secondary)" }}
+                      >
+                        Get directions
+                      </a>
                     )}
                   </div>
                 </li>
@@ -422,6 +474,11 @@ function Venue({ d }: { d?: VenueData }) {
             </a>
           )}
         </Reveal>
+        {d.address && (
+          <Reveal className="mt-10 w-full">
+            <MapEmbed query={d.address} title={`Map of ${d.name || "the venue"}`} />
+          </Reveal>
+        )}
       </div>
     </section>
   );
@@ -468,7 +525,15 @@ function Gallery({ d }: { d?: GalleryData }) {
 }
 
 /* ----------------------------- RSVP ----------------------------------- */
-function Rsvp({ d, subdomain }: { d?: RsvpData; subdomain: string }) {
+function Rsvp({
+  d,
+  subdomain,
+  guestName,
+}: {
+  d?: RsvpData;
+  subdomain: string;
+  guestName?: string;
+}) {
   return (
     <section
       className="relative overflow-hidden px-5 py-20 sm:px-6 sm:py-24"
@@ -490,7 +555,7 @@ function Rsvp({ d, subdomain }: { d?: RsvpData; subdomain: string }) {
           </Reveal>
         )}
         <Reveal className={d?.note ? "" : "mt-8"}>
-          <RsvpForm subdomain={subdomain} />
+          <RsvpForm subdomain={subdomain} data={d} guestName={guestName} />
         </Reveal>
       </div>
     </section>

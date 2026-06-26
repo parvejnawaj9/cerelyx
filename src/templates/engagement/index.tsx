@@ -16,6 +16,8 @@ import { storageUrl } from "@/lib/images/url";
 import { Reveal } from "@/templates/shared/reveal";
 import { RsvpForm } from "@/templates/shared/rsvp-form";
 import { formatDate, formatDateShort, formatTime, directionsUrl } from "@/templates/shared/format";
+import { SharedSection, type RenderContext } from "@/templates/shared/sections";
+import { MapEmbed } from "@/templates/shared/map";
 
 /* --------------------------------------------------------------------------
  * Engagement — a modern editorial spread. Everything hangs off a left margin
@@ -92,7 +94,15 @@ function SectionHead({
   );
 }
 
-export function EngagementSite({ site, lang }: { site: Site; lang?: string }) {
+export function EngagementSite({
+  site,
+  lang,
+  ctx,
+}: {
+  site: Site;
+  lang?: string;
+  ctx?: RenderContext;
+}) {
   const locale = lang ?? site.defaultLanguage ?? "en";
   const c: SiteContent =
     site.content?.[locale] ??
@@ -117,11 +127,20 @@ export function EngagementSite({ site, lang }: { site: Site; lang?: string }) {
           case "gallery":
             return <Gallery key={s.id} d={c.gallery} />;
           case "rsvp":
-            return <Rsvp key={s.id} d={c.rsvp} subdomain={site.subdomain} />;
+            return (
+              <Rsvp
+                key={s.id}
+                d={c.rsvp}
+                subdomain={site.subdomain}
+                guestName={ctx?.guestName}
+              />
+            );
           case "footer":
             return <Footer key={s.id} d={c.footer} hero={c.hero} />;
           default:
-            return null;
+            return (
+              <SharedSection key={s.id} block={s} content={c} site={site} ctx={ctx} />
+            );
         }
       })}
     </div>
@@ -340,6 +359,17 @@ function Story({ d }: { d?: StoryData }) {
                       >
                         {item.body}
                       </p>
+                      {item.imagePath && (
+                        <figure className="relative mt-5 aspect-[16/10] w-full max-w-md overflow-hidden">
+                          <Image
+                            src={storageUrl(item.imagePath)}
+                            alt={item.title || "A moment from our story"}
+                            fill
+                            sizes="(max-width: 768px) 100vw, 28rem"
+                            className="object-cover"
+                          />
+                        </figure>
+                      )}
                     </div>
                   </div>
                 </li>
@@ -395,6 +425,17 @@ function Events({ d }: { d?: EventsData }) {
                   </div>
 
                   <div className="min-w-0">
+                    {ev.imagePath && (
+                      <figure className="relative mb-4 aspect-video w-full max-w-xl overflow-hidden">
+                        <Image
+                          src={storageUrl(ev.imagePath)}
+                          alt={ev.name || "Event photo"}
+                          fill
+                          sizes="(max-width: 768px) 100vw, 36rem"
+                          className="object-cover"
+                        />
+                      </figure>
+                    )}
                     <h3 className="text-2xl sm:text-3xl" style={display()}>
                       {ev.name}
                     </h3>
@@ -413,6 +454,26 @@ function Events({ d }: { d?: EventsData }) {
                       >
                         {ev.description}
                       </p>
+                    )}
+                    {directionsUrl(ev.mapUrl, ev.address) && (
+                      <a
+                        href={directionsUrl(ev.mapUrl, ev.address)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-4 inline-flex items-center gap-2 text-xs uppercase tracking-[0.22em]"
+                        style={{ color: "var(--site-primary)" }}
+                      >
+                        <span
+                          className="border-b pb-1"
+                          style={{
+                            borderColor:
+                              "color-mix(in srgb, var(--site-primary) 45%, transparent)",
+                          }}
+                        >
+                          Get directions
+                        </span>
+                        <span aria-hidden>&rarr;</span>
+                      </a>
                     )}
                   </div>
                 </li>
@@ -509,6 +570,11 @@ function Venue({ d }: { d?: VenueData }) {
             </a>
           )}
         </div>
+        {d.address && (
+          <Reveal className="mt-12 pl-10">
+            <MapEmbed query={d.address} title={`Map of ${d.name || "the venue"}`} />
+          </Reveal>
+        )}
       </div>
     </section>
   );
@@ -517,7 +583,15 @@ function Venue({ d }: { d?: VenueData }) {
 /* -------------------------------- Rsvp ---------------------------------- */
 /* A surface band: a left-aligned editorial intro across from the form. */
 
-function Rsvp({ d, subdomain }: { d?: RsvpData; subdomain: string }) {
+function Rsvp({
+  d,
+  subdomain,
+  guestName,
+}: {
+  d?: RsvpData;
+  subdomain: string;
+  guestName?: string;
+}) {
   return (
     <section
       className="px-6 py-20 sm:px-10 sm:py-28 lg:px-16"
@@ -536,7 +610,7 @@ function Rsvp({ d, subdomain }: { d?: RsvpData; subdomain: string }) {
           )}
         </Reveal>
         <Reveal delay={0.06} className="md:pt-4">
-          <RsvpForm subdomain={subdomain} />
+          <RsvpForm subdomain={subdomain} data={d} guestName={guestName} />
         </Reveal>
       </div>
     </section>

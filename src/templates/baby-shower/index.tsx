@@ -16,6 +16,8 @@ import { storageUrl } from "@/lib/images/url";
 import { Reveal } from "@/templates/shared/reveal";
 import { RsvpForm } from "@/templates/shared/rsvp-form";
 import { formatDate, formatDateShort, formatTime, directionsUrl } from "@/templates/shared/format";
+import { SharedSection, type RenderContext } from "@/templates/shared/sections";
+import { MapEmbed } from "@/templates/shared/map";
 
 /* ---------------------------------------------------------------------------
  * Layout concept: "a soft sky"
@@ -109,7 +111,15 @@ function SectionHeading({ eyebrow, title }: { eyebrow?: string; title: string })
   );
 }
 
-export function BabyShowerSite({ site, lang }: { site: Site; lang?: string }) {
+export function BabyShowerSite({
+  site,
+  lang,
+  ctx,
+}: {
+  site: Site;
+  lang?: string;
+  ctx?: RenderContext;
+}) {
   const locale = lang ?? site.defaultLanguage ?? "en";
   const c: SiteContent =
     site.content?.[locale] ??
@@ -136,11 +146,20 @@ export function BabyShowerSite({ site, lang }: { site: Site; lang?: string }) {
           case "gallery":
             return <Gallery key={s.id} d={c.gallery} />;
           case "rsvp":
-            return <Rsvp key={s.id} d={c.rsvp} subdomain={site.subdomain} />;
+            return (
+              <Rsvp
+                key={s.id}
+                d={c.rsvp}
+                subdomain={site.subdomain}
+                guestName={ctx?.guestName}
+              />
+            );
           case "footer":
             return <Footer key={s.id} d={c.footer} hero={c.hero} />;
           default:
-            return null;
+            return (
+              <SharedSection key={s.id} block={s} content={c} site={site} ctx={ctx} />
+            );
         }
       })}
     </div>
@@ -309,6 +328,20 @@ function Story({ d }: { d?: StoryData }) {
                   >
                     {item.body}
                   </p>
+                  {item.imagePath && (
+                    <div
+                      className="relative mt-4 aspect-[16/10] w-full max-w-sm overflow-hidden rounded-[1.25rem]"
+                      style={{ border: "4px solid var(--site-surface)" }}
+                    >
+                      <Image
+                        src={storageUrl(item.imagePath)}
+                        alt={item.title}
+                        fill
+                        sizes="(max-width: 640px) 100vw, 24rem"
+                        className="object-cover"
+                      />
+                    </div>
+                  )}
                 </li>
               </Reveal>
             ))}
@@ -363,6 +396,20 @@ function Events({ d }: { d?: EventsData }) {
                         "0 22px 48px -36px color-mix(in srgb, var(--site-primary) 70%, transparent)",
                     }}
                   >
+                    {ev.imagePath && (
+                      <div
+                        className="relative mb-4 aspect-[16/9] w-full overflow-hidden rounded-[1.25rem]"
+                        style={{ border: "4px solid var(--site-canvas)" }}
+                      >
+                        <Image
+                          src={storageUrl(ev.imagePath)}
+                          alt={ev.name}
+                          fill
+                          sizes="(max-width: 640px) 100vw, 36rem"
+                          className="object-cover"
+                        />
+                      </div>
+                    )}
                     <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                       <h3 className="text-xl sm:text-2xl" style={displayStyle()}>
                         {ev.name}
@@ -389,6 +436,17 @@ function Events({ d }: { d?: EventsData }) {
                       >
                         {ev.description}
                       </p>
+                    )}
+                    {directionsUrl(ev.mapUrl, ev.address) && (
+                      <a
+                        href={directionsUrl(ev.mapUrl, ev.address)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-3 inline-flex items-center gap-1 text-sm font-medium transition-opacity hover:opacity-80"
+                        style={{ color: "var(--site-primary)" }}
+                      >
+                        Get directions →
+                      </a>
                     )}
                   </article>
                 </li>
@@ -448,6 +506,14 @@ function Venue({ d }: { d?: VenueData }) {
                   Get directions
                 </a>
               )}
+              {d.address && (
+                <div className="mt-6 w-full text-left">
+                  <MapEmbed
+                    query={d.address}
+                    title={`Map of ${d.name || "the venue"}`}
+                  />
+                </div>
+              )}
             </div>
           </div>
         </Reveal>
@@ -494,7 +560,15 @@ function Gallery({ d }: { d?: GalleryData }) {
 }
 
 /* --- RSVP: a calm banded invitation --------------------------------------- */
-function Rsvp({ d, subdomain }: { d?: RsvpData; subdomain: string }) {
+function Rsvp({
+  d,
+  subdomain,
+  guestName,
+}: {
+  d?: RsvpData;
+  subdomain: string;
+  guestName?: string;
+}) {
   return (
     <section
       className="relative isolate overflow-hidden px-6 py-20"
@@ -520,7 +594,7 @@ function Rsvp({ d, subdomain }: { d?: RsvpData; subdomain: string }) {
           </Reveal>
         )}
         <Reveal>
-          <RsvpForm subdomain={subdomain} />
+          <RsvpForm subdomain={subdomain} data={d} guestName={guestName} />
         </Reveal>
       </div>
     </section>

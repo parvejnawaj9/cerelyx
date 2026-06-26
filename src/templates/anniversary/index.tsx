@@ -16,6 +16,8 @@ import { storageUrl } from "@/lib/images/url";
 import { Reveal } from "@/templates/shared/reveal";
 import { RsvpForm } from "@/templates/shared/rsvp-form";
 import { formatDate, formatDateShort, formatTime, directionsUrl } from "@/templates/shared/format";
+import { SharedSection, type RenderContext } from "@/templates/shared/sections";
+import { MapEmbed } from "@/templates/shared/map";
 
 /* --------------------------------------------------------------------------
  * Anniversary — a centred, classical keepsake. Hairline rules and a large
@@ -89,7 +91,7 @@ function SectionHeading({ eyebrow, title }: { eyebrow?: string; title: string })
   );
 }
 
-export function AnniversarySite({ site, lang }: { site: Site; lang?: string }) {
+export function AnniversarySite({ site, lang, ctx }: { site: Site; lang?: string; ctx?: RenderContext }) {
   const locale = lang ?? site.defaultLanguage ?? "en";
   const c: SiteContent =
     site.content?.[locale] ??
@@ -114,11 +116,13 @@ export function AnniversarySite({ site, lang }: { site: Site; lang?: string }) {
           case "gallery":
             return <Gallery key={s.id} d={c.gallery} />;
           case "rsvp":
-            return <Rsvp key={s.id} d={c.rsvp} subdomain={site.subdomain} />;
+            return <Rsvp key={s.id} d={c.rsvp} subdomain={site.subdomain} guestName={ctx?.guestName} />;
           case "footer":
             return <Footer key={s.id} d={c.footer} hero={c.hero} />;
           default:
-            return null;
+            return (
+              <SharedSection key={s.id} block={s} content={c} site={site} ctx={ctx} />
+            );
         }
       })}
     </div>
@@ -313,6 +317,22 @@ function Story({ d }: { d?: StoryData }) {
                     >
                       {item.body}
                     </p>
+                    {item.imagePath && (
+                      <div
+                        className={`relative mt-4 aspect-[16/10] w-full max-w-xs overflow-hidden rounded-[0.2rem] ${
+                          left ? "sm:ml-auto" : ""
+                        }`}
+                        style={{ border: `1px solid ${HAIRLINE}` }}
+                      >
+                        <Image
+                          src={storageUrl(item.imagePath)}
+                          alt={item.title}
+                          fill
+                          sizes="(max-width: 640px) 100vw, 18rem"
+                          className="object-cover"
+                        />
+                      </div>
+                    )}
                   </li>
                 </Reveal>
               );
@@ -347,6 +367,17 @@ function Events({ d }: { d?: EventsData }) {
                   border: `1px solid ${HAIRLINE}`,
                 }}
               >
+                {ev.imagePath && (
+                  <div className="relative mx-auto mb-4 aspect-[5/3] w-full max-w-md overflow-hidden rounded-[0.2rem]">
+                    <Image
+                      src={storageUrl(ev.imagePath)}
+                      alt={ev.name || "Event photo"}
+                      fill
+                      sizes="(max-width: 768px) 100vw, 28rem"
+                      className="object-cover"
+                    />
+                  </div>
+                )}
                 <h3 className="text-xl" style={display()}>
                   {ev.name}
                 </h3>
@@ -372,6 +403,17 @@ function Events({ d }: { d?: EventsData }) {
                   >
                     {ev.description}
                   </p>
+                )}
+                {directionsUrl(ev.mapUrl, ev.address) && (
+                  <a
+                    href={directionsUrl(ev.mapUrl, ev.address)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-3 inline-flex items-center gap-1 text-xs font-medium uppercase tracking-[0.16em]"
+                    style={{ color: "var(--site-primary)" }}
+                  >
+                    Get directions
+                  </a>
                 )}
               </li>
             </Reveal>
@@ -455,6 +497,11 @@ function Venue({ d }: { d?: VenueData }) {
             </a>
           )}
         </Reveal>
+        {d.address && (
+          <Reveal className="mt-10 w-full">
+            <MapEmbed query={d.address} title={`Map of ${d.name || "the venue"}`} />
+          </Reveal>
+        )}
       </div>
     </section>
   );
@@ -462,7 +509,7 @@ function Venue({ d }: { d?: VenueData }) {
 
 /* -------------------------------- Rsvp ---------------------------------- */
 
-function Rsvp({ d, subdomain }: { d?: RsvpData; subdomain: string }) {
+function Rsvp({ d, subdomain, guestName }: { d?: RsvpData; subdomain: string; guestName?: string }) {
   return (
     <section
       className="px-6 py-20 sm:py-24"
@@ -483,7 +530,7 @@ function Rsvp({ d, subdomain }: { d?: RsvpData; subdomain: string }) {
           </Reveal>
         )}
         <Reveal>
-          <RsvpForm subdomain={subdomain} />
+          <RsvpForm subdomain={subdomain} data={d} guestName={guestName} />
         </Reveal>
       </div>
     </section>

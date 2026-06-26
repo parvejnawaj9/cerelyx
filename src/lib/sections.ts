@@ -48,7 +48,52 @@ export const SECTION_LIBRARY: Record<EditableSectionType, SectionMeta> = {
   rsvp: {
     type: "rsvp",
     label: "RSVP",
-    description: "Let guests tell you they're coming.",
+    description: "Let guests tell you they're coming — with meal & custom questions.",
+  },
+  countdown: {
+    type: "countdown",
+    label: "Countdown",
+    description: "A live countdown to the big day.",
+  },
+  photos: {
+    type: "photos",
+    label: "Photo sharing",
+    description: "A button to your shared Google Drive album.",
+  },
+  music: {
+    type: "music",
+    label: "Music",
+    description: "A song that plays softly in the background (muted until tapped).",
+  },
+  wishes: {
+    type: "wishes",
+    label: "Wishes",
+    description: "A guestbook — guests leave a message, you approve them.",
+  },
+  registry: {
+    type: "registry",
+    label: "Gift registry",
+    description: "Share a registry or wish list of gifts.",
+  },
+  livestream: {
+    type: "livestream",
+    label: "Live stream",
+    description: "A clear link for guests joining online.",
+  },
+  travel: {
+    type: "travel",
+    label: "Travel & stay",
+    description: "Hotels, transport and tips for out-of-town guests.",
+  },
+  dressCode: {
+    type: "dressCode",
+    label: "Dress code",
+    description: "Tell guests what to wear, with optional colour swatches.",
+  },
+  faq: {
+    type: "faq",
+    label: "FAQ",
+    description: "Answer the questions guests always ask.",
   },
   footer: {
     type: "footer",
@@ -74,6 +119,15 @@ const SECTION_DEFAULTS: { [K in EditableSectionType]: () => SectionDataMap[K] } 
   gallery: () => ({ imagePaths: [] }),
   rsvp: () => ({}),
   footer: () => ({}),
+  countdown: () => ({}),
+  music: () => ({}),
+  wishes: () => ({}),
+  registry: () => ({ items: [] }),
+  livestream: () => ({}),
+  faq: () => ({ items: [] }),
+  travel: () => ({ items: [] }),
+  dressCode: () => ({}),
+  photos: () => ({}),
 };
 
 /** Empty content for a freshly-added section. */

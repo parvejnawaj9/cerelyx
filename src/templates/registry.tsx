@@ -1,4 +1,5 @@
 import type { Site } from "@/lib/types";
+import type { RenderContext } from "./shared/sections";
 import { RoyalIndianSite } from "./royal-indian";
 import { EngagementSite } from "./engagement";
 import { BirthdaySite } from "./birthday";
@@ -14,6 +15,7 @@ import { CustomSite } from "./custom";
 type TemplateComponent = (props: {
   site: Site;
   lang?: string;
+  ctx?: RenderContext;
 }) => React.ReactNode;
 
 const RENDERERS: Record<string, TemplateComponent> = {
@@ -26,9 +28,17 @@ const RENDERERS: Record<string, TemplateComponent> = {
   custom: CustomSite,
 };
 
-export function SiteRenderer({ site, lang }: { site: Site; lang?: string }) {
+export function SiteRenderer({
+  site,
+  lang,
+  ctx,
+}: {
+  site: Site;
+  lang?: string;
+  ctx?: RenderContext;
+}) {
   const Component = RENDERERS[site.templateId] ?? RoyalIndianSite;
-  return <Component site={site} lang={lang} />;
+  return <Component site={site} lang={lang} ctx={ctx} />;
 }
 
 export function hasRenderer(templateId: string): boolean {

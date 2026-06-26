@@ -42,6 +42,13 @@ if (
   connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true });
   connectFirestoreEmulator(db, "127.0.0.1", 8080);
   connectStorageEmulator(storage, "127.0.0.1", 9199);
+  // Against the Auth emulator, skip the real reCAPTCHA for phone sign-in so the
+  // OTP flow is testable locally (the emulator returns the code in its console).
+  // Double-guarded on NODE_ENV so a misconfigured production build can never
+  // disable real app verification.
+  if (process.env.NODE_ENV !== "production") {
+    auth.settings.appVerificationDisabledForTesting = true;
+  }
 }
 
 // Firebase Analytics — browser-only, support-guarded, and skipped against the

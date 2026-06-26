@@ -6,6 +6,7 @@ import { SiteRenderer } from "@/templates/registry";
 import { siteUrl } from "@/lib/env";
 import type { Site, SiteContent } from "@/lib/types";
 import { hasAccess, resolveGuestForHint } from "@/lib/server/access";
+import { getApprovedWishes, resolveGuestNameBySlug } from "@/lib/server/responses";
 import { maskFor, genericHint } from "@/lib/masking";
 import { ClaimPage } from "./claim";
 import { LockScreen } from "./lock-screen";
@@ -110,6 +111,16 @@ export default async function PublishedSitePage({ params, searchParams }: Params
   // ---- content (open, or private + granted) ----
   const c = (site.content?.[site.defaultLanguage] ?? {}) as SiteContent;
   const hero = c.hero;
+
+  // Prefill a known guest (personalized ?g= link) and load approved wishes when
+  // a wishes section is on the page — both server-side so gated sites work too.
+  const sp = await searchParams;
+  const g = typeof sp.g === "string" ? sp.g : undefined;
+  const guestName = g ? await resolveGuestNameBySlug(site.id, g) : undefined;
+  const hasWishes = (site.sections ?? []).some(
+    (s) => s.type === "wishes" && s.visible
+  );
+  const approvedWishes = hasWishes ? await getApprovedWishes(site.id) : undefined;
   const jsonLd =
     site.privacy === "open" && hero?.date
       ? {
@@ -139,7 +150,7 @@ export default async function PublishedSitePage({ params, searchParams }: Params
           }}
         />
       )}
-      <SiteRenderer site={site} />
+      <SiteRenderer site={site} ctx={{ guestName, approvedWishes }} />
     </>
   );
 }

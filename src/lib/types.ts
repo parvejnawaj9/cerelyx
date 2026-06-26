@@ -65,8 +65,10 @@ export const SECTION_TYPES = [
   "story",
   "events",
   "gallery",
+  "photos",
   "venue",
   "countdown",
+  "music",
   "rsvp",
   "registry",
   "wishes",
@@ -125,6 +127,7 @@ export interface StoryItem {
   title: string;
   date?: string; // ISO date or free text ("2021")
   body: string;
+  imagePath?: string; // optional milestone photo (Storage path)
 }
 
 export interface EventItem {
@@ -135,7 +138,9 @@ export interface EventItem {
   endTime?: string;
   venueName?: string;
   address?: string;
+  mapUrl?: string; // per-event "Get directions" link / embed source
   description?: string;
+  imagePath?: string; // optional event photo / icon (Storage path)
 }
 
 export interface HeroData {
@@ -169,13 +174,109 @@ export interface GalleryData {
   imagePaths: string[];
 }
 
+/** A host-defined extra RSVP question. */
+export interface CustomQuestion {
+  id: string;
+  label: string;
+  type: "text" | "select";
+  options?: string[]; // for type === 'select'
+  required?: boolean;
+}
+
 export interface RsvpData {
   note?: string;
+  /** Meal options guests pick from (empty/omitted = no meal question). */
+  mealChoices?: string[];
+  /** Host-defined extra questions (text or select). */
+  customQuestions?: CustomQuestion[];
 }
 
 export interface FooterData {
   hosts?: string;
   note?: string;
+}
+
+// ---- Phase 3 section content ----------------------------------------------
+
+export interface CountdownData {
+  title?: string;
+  /** ISO date/time the countdown targets (usually the main event). */
+  targetDate?: string;
+  /** Shown once the target passes. */
+  passedMessage?: string;
+}
+
+export interface MusicData {
+  title?: string;
+  trackPath?: string; // uploaded audio (Storage path)
+  trackUrl?: string; // or a direct link to an audio file
+}
+
+export interface WishesData {
+  title?: string;
+  intro?: string;
+  /** When true, new wishes appear publicly without host approval. */
+  autoApprove?: boolean;
+}
+
+export interface RegistryItem {
+  id: string;
+  title: string;
+  note?: string;
+  url?: string;
+  imagePath?: string;
+}
+
+export interface RegistryData {
+  title?: string;
+  intro?: string;
+  items: RegistryItem[];
+}
+
+export interface LivestreamData {
+  title?: string;
+  intro?: string;
+  url?: string;
+  /** Optional time-gate: link is highlighted from this ISO time. */
+  startsAt?: string;
+}
+
+export interface FaqItem {
+  id: string;
+  q: string;
+  a: string;
+}
+
+export interface FaqData {
+  title?: string;
+  items: FaqItem[];
+}
+
+export interface TravelItem {
+  id: string;
+  title: string; // "Where to stay", "Getting there", a hotel name…
+  body: string;
+  url?: string; // optional booking / maps link
+}
+
+export interface TravelData {
+  title?: string;
+  intro?: string;
+  items: TravelItem[];
+}
+
+export interface DressCodeData {
+  title?: string;
+  note?: string;
+  /** Optional palette guidance — hex colors shown as swatches. */
+  swatches?: string[];
+}
+
+export interface PhotosData {
+  title?: string;
+  intro?: string;
+  /** Host's Google Drive folder link guests open to view/add photos. */
+  driveGalleryUrl?: string;
 }
 
 /** Maps an editable section type to its content shape. */
@@ -187,8 +288,16 @@ export interface SectionDataMap {
   gallery: GalleryData;
   rsvp: RsvpData;
   footer: FooterData;
-  // Phase 3 section types (countdown, registry, wishes, faq, travel, dressCode,
-  // livestream) are added here as they ship.
+  // Phase 3
+  countdown: CountdownData;
+  music: MusicData;
+  wishes: WishesData;
+  registry: RegistryData;
+  livestream: LivestreamData;
+  faq: FaqData;
+  travel: TravelData;
+  dressCode: DressCodeData;
+  photos: PhotosData;
 }
 
 export type EditableSectionType = keyof SectionDataMap;

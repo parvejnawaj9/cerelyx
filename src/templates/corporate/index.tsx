@@ -16,6 +16,8 @@ import { storageUrl } from "@/lib/images/url";
 import { Reveal } from "@/templates/shared/reveal";
 import { RsvpForm } from "@/templates/shared/rsvp-form";
 import { formatDate, formatDateShort, formatTime, directionsUrl } from "@/templates/shared/format";
+import { SharedSection, type RenderContext } from "@/templates/shared/sections";
+import { MapEmbed } from "@/templates/shared/map";
 
 /** Shared display-face helper — headings only. */
 const display = (color = "var(--site-ink)"): CSSProperties => ({
@@ -46,7 +48,7 @@ function IndexMark({ n, label }: { n: number; label?: string }) {
   );
 }
 
-export function CorporateSite({ site, lang }: { site: Site; lang?: string }) {
+export function CorporateSite({ site, lang, ctx }: { site: Site; lang?: string; ctx?: RenderContext }) {
   const locale = lang ?? site.defaultLanguage ?? "en";
   const c: SiteContent =
     site.content?.[locale] ??
@@ -71,11 +73,13 @@ export function CorporateSite({ site, lang }: { site: Site; lang?: string }) {
           case "gallery":
             return <Gallery key={s.id} d={c.gallery} />;
           case "rsvp":
-            return <Rsvp key={s.id} d={c.rsvp} subdomain={site.subdomain} />;
+            return <Rsvp key={s.id} d={c.rsvp} subdomain={site.subdomain} guestName={ctx?.guestName} />;
           case "footer":
             return <Footer key={s.id} d={c.footer} hero={c.hero} />;
           default:
-            return null;
+            return (
+              <SharedSection key={s.id} block={s} content={c} site={site} ctx={ctx} />
+            );
         }
       })}
     </div>
@@ -248,6 +252,17 @@ function Story({ d }: { d?: StoryData }) {
                     <p className="mt-1 text-sm leading-relaxed" style={{ color: "var(--site-muted)" }}>
                       {item.body}
                     </p>
+                    {item.imagePath && (
+                      <div className="relative mt-3 aspect-[16/10] w-full max-w-sm overflow-hidden rounded-sm">
+                        <Image
+                          src={storageUrl(item.imagePath)}
+                          alt={item.title || "Background photo"}
+                          fill
+                          sizes="(max-width: 640px) 100vw, 24rem"
+                          className="object-cover"
+                        />
+                      </div>
+                    )}
                   </div>
                 </li>
               </Reveal>
@@ -315,6 +330,29 @@ function Events({ d }: { d?: EventsData }) {
                           {ev.description}
                         </p>
                       )}
+                      {ev.imagePath && (
+                        <div className="relative mt-2 aspect-[16/9] w-full max-w-md overflow-hidden rounded-sm">
+                          <Image
+                            src={storageUrl(ev.imagePath)}
+                            alt={ev.name || "Event photo"}
+                            fill
+                            sizes="(max-width: 640px) 100vw, 28rem"
+                            className="object-cover"
+                          />
+                        </div>
+                      )}
+                      {directionsUrl(ev.mapUrl, ev.address) && (
+                        <a
+                          href={directionsUrl(ev.mapUrl, ev.address)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-1 inline-flex w-fit items-center gap-1.5 font-mono text-xs font-medium uppercase tracking-[0.16em]"
+                          style={{ color: "var(--site-accent)" }}
+                        >
+                          Get directions
+                          <span aria-hidden>→</span>
+                        </a>
+                      )}
                     </div>
                   </div>
                 </li>
@@ -372,6 +410,11 @@ function Venue({ d }: { d?: VenueData }) {
             </span>
           </Reveal>
         </div>
+        {d.address && (
+          <Reveal className="mt-8 block">
+            <MapEmbed query={d.address} title={`Map of ${d.name || "the venue"}`} />
+          </Reveal>
+        )}
       </div>
     </section>
   );
@@ -411,7 +454,7 @@ function Gallery({ d }: { d?: GalleryData }) {
  * Rsvp — framed as "Register". A bordered card on the dark slate ground so the
  * form reads as the primary action of the page.
  * ------------------------------------------------------------------------- */
-function Rsvp({ d, subdomain }: { d?: RsvpData; subdomain: string }) {
+function Rsvp({ d, subdomain, guestName }: { d?: RsvpData; subdomain: string; guestName?: string }) {
   return (
     <section
       id="register"
@@ -453,7 +496,7 @@ function Rsvp({ d, subdomain }: { d?: RsvpData; subdomain: string }) {
             className="mt-10 rounded-sm p-6 sm:p-8"
             style={{ backgroundColor: "var(--site-canvas)", borderTop: "3px solid var(--site-accent)" }}
           >
-            <RsvpForm subdomain={subdomain} />
+            <RsvpForm subdomain={subdomain} data={d} guestName={guestName} />
           </div>
         </Reveal>
       </div>

@@ -1,16 +1,32 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import type { RsvpData } from "@/lib/types";
+
+type Attending = "yes" | "no" | "maybe";
 
 /**
- * Minimal guest RSVP (brief §7), fully theme-tokenized via --site-* so every
- * template can drop it in. Posts to the public RSVP route; meal choices, custom
- * questions and the live host summary are Phase 3.
+ * Guest RSVP (brief §7), fully theme-tokenized via --site-* so every template
+ * can drop it in. Posts to the public RSVP route. Supports a meal choice, host
+ * custom questions, a yes/no/maybe answer, and name prefill for known guests.
  */
-export function RsvpForm({ subdomain }: { subdomain: string }) {
-  const [name, setName] = useState("");
-  const [attending, setAttending] = useState<"yes" | "no" | null>(null);
+export function RsvpForm({
+  subdomain,
+  data,
+  guestName,
+}: {
+  subdomain: string;
+  data?: RsvpData;
+  guestName?: string;
+}) {
+  const meals = (data?.mealChoices ?? []).filter((m) => m.trim());
+  const questions = (data?.customQuestions ?? []).filter((q) => q.label.trim());
+
+  const [name, setName] = useState(guestName ?? "");
+  const [attending, setAttending] = useState<Attending | null>(null);
   const [partySize, setPartySize] = useState(1);
+  const [meal, setMeal] = useState("");
+  const [answers, setAnswers] = useState<Record<string, string>>({});
   const [message, setMessage] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "done" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
@@ -25,12 +41,26 @@ export function RsvpForm({ subdomain }: { subdomain: string }) {
     borderColor: "color-mix(in srgb, var(--site-gold) 45%, transparent)",
     color: "var(--site-ink)",
   };
+  const inputCls =
+    "rounded-[0.6rem] border px-3.5 py-2.5 text-sm outline-none focus:ring-2";
+
+  const coming = attending === "yes" || attending === "maybe";
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim() || attending === null) {
       setError("Please tell us your name and whether you can make it.");
       return;
+    }
+    if (coming && meals.length > 0 && !meal) {
+      setError("Please choose a meal option.");
+      return;
+    }
+    for (const q of questions) {
+      if (q.required && !(answers[q.id] ?? "").trim()) {
+        setError(`Please answer: ${q.label}`);
+        return;
+      }
     }
     setState("sending");
     setError(null);
@@ -40,14 +70,16 @@ export function RsvpForm({ subdomain }: { subdomain: string }) {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           name,
-          attending: attending === "yes",
-          partySize: attending === "yes" ? partySize : 0,
+          attending,
+          partySize: coming ? partySize : 0,
+          mealChoice: coming && meal ? meal : undefined,
+          answers: Object.keys(answers).length ? answers : undefined,
           message,
         }),
       });
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error ?? "Could not send your RSVP.");
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error ?? "Could not send your RSVP.");
       }
       setState("done");
     } catch (err) {
@@ -62,7 +94,7 @@ export function RsvpForm({ subdomain }: { subdomain: string }) {
         ref={doneRef}
         role="status"
         tabIndex={-1}
-        className="rounded-[1rem] px-6 py-8 text-center outline-none"
+        className="mx-auto max-w-md rounded-[1rem] px-6 py-8 text-center outline-none"
         style={{
           backgroundColor: "var(--site-surface)",
           border: "1px solid color-mix(in srgb, var(--site-gold) 45%, transparent)",
@@ -72,19 +104,24 @@ export function RsvpForm({ subdomain }: { subdomain: string }) {
           className="text-2xl"
           style={{ fontFamily: "var(--site-display)", color: "var(--site-primary)" }}
         >
-          Thank you!
+          Thank you{name.trim() ? `, ${name.trim().split(" ")[0]}` : ""}!
         </p>
         <p className="mt-2 text-sm" style={{ color: "var(--site-muted)" }}>
-          {attending === "yes"
-            ? "We can't wait to celebrate with you."
-            : "We'll miss you — thank you for letting us know."}
+          {attending === "no"
+            ? "We'll miss you — thank you for letting us know."
+            : attending === "maybe"
+              ? "Thanks for letting us know — we hope you can make it."
+              : "We can't wait to celebrate with you."}
         </p>
       </div>
     );
   }
 
   return (
-    <form onSubmit={submit} className="mx-auto flex w-full max-w-md flex-col gap-4 text-left">
+    <form
+      onSubmit={submit}
+      className="mx-auto flex w-full max-w-md flex-col gap-4 text-left"
+    >
       <div className="flex flex-col gap-1.5">
         <label htmlFor="rsvp-name" className="text-sm font-medium">
           Your name
@@ -95,7 +132,7 @@ export function RsvpForm({ subdomain }: { subdomain: string }) {
           onChange={(e) => setName(e.target.value)}
           required
           maxLength={120}
-          className="rounded-[0.6rem] border px-3.5 py-2.5 text-sm outline-none focus:ring-2"
+          className={inputCls}
           style={inputStyle}
           placeholder="e.g. Meera Sharma"
         />
@@ -103,11 +140,12 @@ export function RsvpForm({ subdomain }: { subdomain: string }) {
 
       <fieldset className="flex flex-col gap-2">
         <legend className="mb-1 text-sm font-medium">Will you join us?</legend>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-3 gap-2">
           {(
             [
               ["yes", "Joyfully accept"],
-              ["no", "Regretfully decline"],
+              ["maybe", "Maybe"],
+              ["no", "Can't make it"],
             ] as const
           ).map(([val, label]) => (
             <button
@@ -115,9 +153,10 @@ export function RsvpForm({ subdomain }: { subdomain: string }) {
               key={val}
               onClick={() => setAttending(val)}
               aria-pressed={attending === val}
-              className="rounded-[0.6rem] border px-3 py-2.5 text-sm font-medium transition-colors"
+              className="rounded-[0.6rem] border px-3 py-2.5 text-center text-sm font-medium transition-colors"
               style={{
-                backgroundColor: attending === val ? "var(--site-primary)" : "var(--site-surface)",
+                backgroundColor:
+                  attending === val ? "var(--site-primary)" : "var(--site-surface)",
                 color: attending === val ? "#fff" : "var(--site-ink)",
                 borderColor: "color-mix(in srgb, var(--site-gold) 45%, transparent)",
               }}
@@ -128,7 +167,7 @@ export function RsvpForm({ subdomain }: { subdomain: string }) {
         </div>
       </fieldset>
 
-      {attending === "yes" && (
+      {coming && (
         <div className="flex flex-col gap-1.5">
           <label htmlFor="rsvp-party" className="text-sm font-medium">
             How many of you?
@@ -142,11 +181,75 @@ export function RsvpForm({ subdomain }: { subdomain: string }) {
             onChange={(e) =>
               setPartySize(Math.max(1, Math.min(20, Number(e.target.value) || 1)))
             }
-            className="w-28 rounded-[0.6rem] border px-3.5 py-2.5 text-sm outline-none focus:ring-2"
+            className={`w-28 ${inputCls}`}
             style={inputStyle}
           />
         </div>
       )}
+
+      {coming && meals.length > 0 && (
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="rsvp-meal" className="text-sm font-medium">
+            Meal preference
+          </label>
+          <select
+            id="rsvp-meal"
+            value={meal}
+            onChange={(e) => setMeal(e.target.value)}
+            className={inputCls}
+            style={inputStyle}
+          >
+            <option value="">Choose one…</option>
+            {meals.map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {questions.map((q) => (
+        <div key={q.id} className="flex flex-col gap-1.5">
+          <label htmlFor={`rsvp-q-${q.id}`} className="text-sm font-medium">
+            {q.label}
+            {!q.required && (
+              <span style={{ color: "var(--site-muted)" }}> (optional)</span>
+            )}
+          </label>
+          {q.type === "select" ? (
+            <select
+              id={`rsvp-q-${q.id}`}
+              value={answers[q.id] ?? ""}
+              onChange={(e) =>
+                setAnswers((a) => ({ ...a, [q.id]: e.target.value }))
+              }
+              className={inputCls}
+              style={inputStyle}
+            >
+              <option value="">Choose one…</option>
+              {(q.options ?? [])
+                .filter((o) => o.trim())
+                .map((o) => (
+                  <option key={o} value={o}>
+                    {o}
+                  </option>
+                ))}
+            </select>
+          ) : (
+            <input
+              id={`rsvp-q-${q.id}`}
+              value={answers[q.id] ?? ""}
+              onChange={(e) =>
+                setAnswers((a) => ({ ...a, [q.id]: e.target.value }))
+              }
+              maxLength={400}
+              className={inputCls}
+              style={inputStyle}
+            />
+          )}
+        </div>
+      ))}
 
       <div className="flex flex-col gap-1.5">
         <label htmlFor="rsvp-msg" className="text-sm font-medium">
@@ -158,7 +261,7 @@ export function RsvpForm({ subdomain }: { subdomain: string }) {
           onChange={(e) => setMessage(e.target.value)}
           maxLength={600}
           rows={3}
-          className="rounded-[0.6rem] border px-3.5 py-2.5 text-sm outline-none focus:ring-2"
+          className={inputCls}
           style={inputStyle}
           placeholder="Can't wait to see you both!"
         />

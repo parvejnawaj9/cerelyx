@@ -17,6 +17,8 @@ import { Reveal } from "./reveal";
 import { RsvpForm } from "./rsvp-form";
 import { CornerFiligree, DividerOrnament, LotusMark } from "./motifs";
 import { formatDate, formatDateShort, formatTime, directionsUrl } from "./format";
+import { SharedSection, type RenderContext } from "@/templates/shared/sections";
+import { MapEmbed } from "@/templates/shared/map";
 
 /** Map the theme into the --site-* CSS variables the sections consume. */
 function siteStyle(theme: Theme): CSSProperties {
@@ -43,7 +45,15 @@ const display = (color = "var(--site-primary)"): CSSProperties => ({
   color,
 });
 
-export function RoyalIndianSite({ site, lang }: { site: Site; lang?: string }) {
+export function RoyalIndianSite({
+  site,
+  lang,
+  ctx,
+}: {
+  site: Site;
+  lang?: string;
+  ctx?: RenderContext;
+}) {
   const locale = lang ?? site.defaultLanguage ?? "en";
   const c: SiteContent =
     site.content?.[locale] ??
@@ -70,11 +80,26 @@ export function RoyalIndianSite({ site, lang }: { site: Site; lang?: string }) {
           case "gallery":
             return <Gallery key={s.id} d={c.gallery} />;
           case "rsvp":
-            return <Rsvp key={s.id} d={c.rsvp} subdomain={site.subdomain} />;
+            return (
+              <Rsvp
+                key={s.id}
+                d={c.rsvp}
+                subdomain={site.subdomain}
+                guestName={ctx?.guestName}
+              />
+            );
           case "footer":
             return <Footer key={s.id} d={c.footer} hero={c.hero} />;
           default:
-            return null;
+            return (
+              <SharedSection
+                key={s.id}
+                block={s}
+                content={c}
+                site={site}
+                ctx={ctx}
+              />
+            );
         }
       })}
     </div>
@@ -233,6 +258,17 @@ function Story({ d }: { d?: StoryData }) {
                   >
                     {item.body}
                   </p>
+                  {item.imagePath && (
+                    <div className="relative mt-3 aspect-[16/10] w-full max-w-sm overflow-hidden rounded-[0.7rem]">
+                      <Image
+                        src={storageUrl(item.imagePath)}
+                        alt={item.title}
+                        fill
+                        sizes="(max-width: 640px) 100vw, 24rem"
+                        className="object-cover"
+                      />
+                    </div>
+                  )}
                 </li>
               </Reveal>
             ))}
@@ -267,6 +303,17 @@ function Events({ d }: { d?: EventsData }) {
                     "0 18px 40px -28px color-mix(in srgb, var(--site-ink) 60%, transparent)",
                 }}
               >
+                {ev.imagePath && (
+                  <div className="relative mb-1 aspect-[16/9] w-full overflow-hidden rounded-[0.7rem]">
+                    <Image
+                      src={storageUrl(ev.imagePath)}
+                      alt={ev.name}
+                      fill
+                      sizes="(max-width: 640px) 100vw, 20rem"
+                      className="object-cover"
+                    />
+                  </div>
+                )}
                 <div className="flex items-center gap-2">
                   <LotusMark className="h-5 w-auto" />
                   <h3 className="text-xl" style={display()}>
@@ -290,6 +337,17 @@ function Events({ d }: { d?: EventsData }) {
                   >
                     {ev.description}
                   </p>
+                )}
+                {directionsUrl(ev.mapUrl, ev.address) && (
+                  <a
+                    href={directionsUrl(ev.mapUrl, ev.address)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-auto inline-flex items-center gap-1 pt-1 text-sm font-medium"
+                    style={{ color: "var(--site-primary)" }}
+                  >
+                    Get directions →
+                  </a>
                 )}
               </article>
             </Reveal>
@@ -328,6 +386,11 @@ function Venue({ d }: { d?: VenueData }) {
             </a>
           )}
         </Reveal>
+        {d.address && (
+          <Reveal className="mt-10 w-full">
+            <MapEmbed query={d.address} title={`Map of ${d.name || "the venue"}`} />
+          </Reveal>
+        )}
       </div>
     </section>
   );
@@ -365,7 +428,15 @@ function Gallery({ d }: { d?: GalleryData }) {
   );
 }
 
-function Rsvp({ d, subdomain }: { d?: RsvpData; subdomain: string }) {
+function Rsvp({
+  d,
+  subdomain,
+  guestName,
+}: {
+  d?: RsvpData;
+  subdomain: string;
+  guestName?: string;
+}) {
   return (
     <section className="px-6 py-20">
       <div className="mx-auto max-w-2xl">
@@ -383,7 +454,7 @@ function Rsvp({ d, subdomain }: { d?: RsvpData; subdomain: string }) {
           </Reveal>
         )}
         <Reveal>
-          <RsvpForm subdomain={subdomain} />
+          <RsvpForm subdomain={subdomain} data={d} guestName={guestName} />
         </Reveal>
       </div>
     </section>

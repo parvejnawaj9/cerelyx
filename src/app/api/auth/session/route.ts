@@ -60,12 +60,18 @@ export async function POST(req: NextRequest) {
     maxAge: SESSION_MAX_AGE_SECONDS,
   });
 
-  await ensureUserProfile({
-    uid: decoded.uid,
-    email: decoded.email ?? null,
-    name: (decoded.name as string | undefined) ?? null,
-    picture: (decoded.picture as string | undefined) ?? null,
-  });
+  // Best-effort: the cookie is already set, so a transient profile-write error
+  // must not fail an otherwise-valid login (it's retried on the next request).
+  try {
+    await ensureUserProfile({
+      uid: decoded.uid,
+      email: decoded.email ?? null,
+      name: (decoded.name as string | undefined) ?? null,
+      picture: (decoded.picture as string | undefined) ?? null,
+    });
+  } catch (e) {
+    console.error("[session] ensureUserProfile failed (non-fatal):", e);
+  }
 
   return NextResponse.json({ ok: true });
 }

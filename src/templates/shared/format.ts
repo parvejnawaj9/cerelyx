@@ -1,7 +1,7 @@
 /** Date/time formatting shared by templates. Date-only strings parse as LOCAL
  * to avoid the off-by-one-day timezone shift. */
 
-function parseLocal(value: string): Date | null {
+export function parseLocal(value: string): Date | null {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
   if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
   const d = new Date(value);

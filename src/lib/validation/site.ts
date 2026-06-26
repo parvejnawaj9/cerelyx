@@ -32,11 +32,20 @@ export const createSiteSchema = z.object({
 });
 export type CreateSiteInput = z.infer<typeof createSiteSchema>;
 
+/** A safe outbound link: empty, or an http(s) URL (blocks javascript:/data:). */
+const httpUrl = z
+  .string()
+  .max(1000)
+  .refine((s) => !s || /^https?:\/\//i.test(s), {
+    message: "Use a full link starting with http:// or https://",
+  });
+
 const storyItemSchema = z.object({
   id: z.string().max(64),
   title: z.string().max(160).optional().default(""),
   date: z.string().max(40).optional(),
   body: z.string().max(4000).optional().default(""),
+  imagePath: z.string().max(500).optional(),
 });
 
 const eventItemSchema = z.object({
@@ -47,7 +56,9 @@ const eventItemSchema = z.object({
   endTime: z.string().max(20).optional(),
   venueName: z.string().max(200).optional(),
   address: z.string().max(400).optional(),
+  mapUrl: z.string().max(1000).optional(),
   description: z.string().max(1000).optional(),
+  imagePath: z.string().max(500).optional(),
 });
 
 // ---- per-section content schemas ------------------------------------------
@@ -86,11 +97,111 @@ const gallerySchema = z.object({
   imagePaths: z.array(z.string().max(500)).max(40).optional().default([]),
 });
 
-const rsvpDataSchema = z.object({ note: z.string().max(1000).optional() });
+const customQuestionSchema = z.object({
+  id: z.string().max(64),
+  label: z.string().max(160).optional().default(""),
+  type: z.enum(["text", "select"]).default("text"),
+  options: z.array(z.string().max(120)).max(12).optional(),
+  required: z.boolean().optional(),
+});
+
+const rsvpDataSchema = z.object({
+  note: z.string().max(1000).optional(),
+  mealChoices: z.array(z.string().max(120)).max(12).optional(),
+  customQuestions: z.array(customQuestionSchema).max(8).optional(),
+});
 
 const footerSchema = z.object({
   hosts: z.string().max(300).optional(),
   note: z.string().max(500).optional(),
+});
+
+// ---- Phase 3 per-section content schemas ----------------------------------
+
+const countdownSchema = z.object({
+  title: z.string().max(160).optional(),
+  targetDate: z
+    .string()
+    .max(40)
+    .optional()
+    .refine((s) => !s || isValidDateString(s), { message: "Enter a valid date." }),
+  passedMessage: z.string().max(240).optional(),
+});
+
+const musicSchema = z.object({
+  title: z.string().max(160).optional(),
+  trackPath: z.string().max(500).optional(),
+  trackUrl: httpUrl.optional(),
+});
+
+const wishesSchema = z.object({
+  title: z.string().max(160).optional(),
+  intro: z.string().max(1000).optional(),
+  autoApprove: z.boolean().optional(),
+});
+
+const registryItemSchema = z.object({
+  id: z.string().max(64),
+  title: z.string().max(200).optional().default(""),
+  note: z.string().max(600).optional(),
+  url: httpUrl.optional(),
+  imagePath: z.string().max(500).optional(),
+});
+
+const registrySchema = z.object({
+  title: z.string().max(160).optional(),
+  intro: z.string().max(1000).optional(),
+  items: z.array(registryItemSchema).max(30).optional().default([]),
+});
+
+const livestreamSchema = z.object({
+  title: z.string().max(160).optional(),
+  intro: z.string().max(1000).optional(),
+  url: httpUrl.optional(),
+  startsAt: z
+    .string()
+    .max(40)
+    .optional()
+    .refine((s) => !s || isValidDateString(s), { message: "Enter a valid date." }),
+});
+
+const faqItemSchema = z.object({
+  id: z.string().max(64),
+  q: z.string().max(300).optional().default(""),
+  a: z.string().max(2000).optional().default(""),
+});
+
+const faqSchema = z.object({
+  title: z.string().max(160).optional(),
+  items: z.array(faqItemSchema).max(30).optional().default([]),
+});
+
+const travelItemSchema = z.object({
+  id: z.string().max(64),
+  title: z.string().max(200).optional().default(""),
+  body: z.string().max(2000).optional().default(""),
+  url: httpUrl.optional(),
+});
+
+const travelSchema = z.object({
+  title: z.string().max(160).optional(),
+  intro: z.string().max(1000).optional(),
+  items: z.array(travelItemSchema).max(20).optional().default([]),
+});
+
+const dressCodeSchema = z.object({
+  title: z.string().max(160).optional(),
+  note: z.string().max(1000).optional(),
+  swatches: z
+    .array(z.string().regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/))
+    .max(8)
+    .optional(),
+});
+
+const photosSchema = z.object({
+  title: z.string().max(160).optional(),
+  intro: z.string().max(1000).optional(),
+  driveGalleryUrl: httpUrl.optional(),
 });
 
 /** All content for one language, one block per section type. */
@@ -102,6 +213,15 @@ export const siteContentSchema = z.object({
   gallery: gallerySchema.optional(),
   rsvp: rsvpDataSchema.optional(),
   footer: footerSchema.optional(),
+  countdown: countdownSchema.optional(),
+  music: musicSchema.optional(),
+  wishes: wishesSchema.optional(),
+  registry: registrySchema.optional(),
+  livestream: livestreamSchema.optional(),
+  faq: faqSchema.optional(),
+  travel: travelSchema.optional(),
+  dressCode: dressCodeSchema.optional(),
+  photos: photosSchema.optional(),
 });
 
 const hex = z

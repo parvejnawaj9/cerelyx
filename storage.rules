@@ -26,14 +26,19 @@ service firebase.storage {
         && firestore.get(/databases/(default)/documents/sites/$(siteId)).data.ownerId == request.auth.uid;
     }
 
-    function isValidImage() {
-      return request.resource.contentType.matches('image/.*')
-        && request.resource.size < 15 * 1024 * 1024; // 15 MB hard cap per file
-    }
-
+    // Uploads go ONLY through the server routes (/api/sites/<id>/images and
+    // /api/sites/<id>/audio), which use the Admin SDK (bypasses these rules) and
+    // enforce ownership + MIME + size + the per-site storage quota atomically.
+    // Direct client writes are denied so the quota can never be bypassed from the
+    // browser SDK. Reads stay public (rendered on guest sites).
     match /sites/{siteId}/images/{allPaths=**} {
       allow read: if true;
-      allow write: if ownsSite(siteId) && isValidImage();
+      allow write: if false;
+    }
+
+    match /sites/{siteId}/audio/{allPaths=**} {
+      allow read: if true;
+      allow write: if false;
     }
 
     // Everything else is denied by default.

@@ -11,6 +11,8 @@ import {
   Smartphone,
   ExternalLink,
   Users,
+  ClipboardList,
+  MessageSquare,
   LayoutList,
   Palette,
   Settings2,
@@ -311,6 +313,20 @@ export function EditorClient({ site }: { site: Site }) {
             >
               <Users className="h-4 w-4" />
               Guests
+            </Link>
+            <Link
+              href={`/sites/${site.id}/responses`}
+              className="hidden items-center gap-1.5 text-sm text-muted transition-colors hover:text-ink sm:inline-flex"
+            >
+              <ClipboardList className="h-4 w-4" />
+              Responses
+            </Link>
+            <Link
+              href={`/sites/${site.id}/wishes`}
+              className="hidden items-center gap-1.5 text-sm text-muted transition-colors hover:text-ink sm:inline-flex"
+            >
+              <MessageSquare className="h-4 w-4" />
+              Wishes
             </Link>
             <div className="flex rounded-full border border-line bg-surface p-0.5 lg:hidden">
               <TabBtn active={view === "edit"} onClick={() => setView("edit")}>

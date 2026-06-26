@@ -21,6 +21,8 @@ import {
   formatTime,
   directionsUrl,
 } from "@/templates/shared/format";
+import { SharedSection, type RenderContext } from "@/templates/shared/sections";
+import { MapEmbed } from "@/templates/shared/map";
 
 /* -------------------------------------------------------------------------- */
 /* Signature element: a minimal geometric monogram mark — a ring crossed by a  */
@@ -87,7 +89,15 @@ const eyebrowStyle: CSSProperties = {
   fontFamily: "var(--site-display)",
 };
 
-export function CustomSite({ site, lang }: { site: Site; lang?: string }) {
+export function CustomSite({
+  site,
+  lang,
+  ctx,
+}: {
+  site: Site;
+  lang?: string;
+  ctx?: RenderContext;
+}) {
   const locale = lang ?? site.defaultLanguage ?? "en";
   const c: SiteContent =
     site.content?.[locale] ??
@@ -114,11 +124,20 @@ export function CustomSite({ site, lang }: { site: Site; lang?: string }) {
           case "gallery":
             return <Gallery key={s.id} d={c.gallery} />;
           case "rsvp":
-            return <Rsvp key={s.id} d={c.rsvp} subdomain={site.subdomain} />;
+            return (
+              <Rsvp
+                key={s.id}
+                d={c.rsvp}
+                subdomain={site.subdomain}
+                guestName={ctx?.guestName}
+              />
+            );
           case "footer":
             return <Footer key={s.id} d={c.footer} hero={c.hero} />;
           default:
-            return null;
+            return (
+              <SharedSection key={s.id} block={s} content={c} site={site} ctx={ctx} />
+            );
         }
       })}
     </div>
@@ -333,6 +352,23 @@ function Story({ d }: { d?: StoryData }) {
                     >
                       {item.body}
                     </p>
+                    {item.imagePath && (
+                      <div
+                        className="relative mt-4 aspect-video w-full max-w-sm overflow-hidden rounded-[0.9rem]"
+                        style={{
+                          border:
+                            "1px solid color-mix(in srgb, var(--site-gold) 40%, transparent)",
+                        }}
+                      >
+                        <Image
+                          src={storageUrl(item.imagePath)}
+                          alt={item.title || "Story photo"}
+                          fill
+                          sizes="(max-width: 640px) 100vw, 24rem"
+                          className="object-cover"
+                        />
+                      </div>
+                    )}
                   </div>
                 </li>
               </Reveal>
@@ -410,6 +446,35 @@ function Events({ d }: { d?: EventsData }) {
                         {ev.description}
                       </p>
                     )}
+                    {ev.imagePath && (
+                      <div
+                        className="relative mt-3 aspect-video w-full max-w-md overflow-hidden rounded-[0.9rem]"
+                        style={{
+                          border:
+                            "1px solid color-mix(in srgb, var(--site-gold) 40%, transparent)",
+                        }}
+                      >
+                        <Image
+                          src={storageUrl(ev.imagePath)}
+                          alt={ev.name || "Event photo"}
+                          fill
+                          sizes="(max-width: 640px) 100vw, 28rem"
+                          className="object-cover"
+                        />
+                      </div>
+                    )}
+                    {directionsUrl(ev.mapUrl, ev.address) && (
+                      <a
+                        href={directionsUrl(ev.mapUrl, ev.address)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-2 inline-flex w-fit items-center gap-1.5 text-sm font-medium outline-none transition-opacity hover:opacity-80"
+                        style={{ color: "var(--site-primary)" }}
+                      >
+                        Get directions
+                        <span aria-hidden>&rarr;</span>
+                      </a>
+                    )}
                   </div>
 
                   {when && (
@@ -452,54 +517,62 @@ function Venue({ d }: { d?: VenueData }) {
       className="px-6 py-20 lg:px-8 lg:py-24"
       style={{ backgroundColor: "var(--site-surface)" }}
     >
-      <div className="mx-auto grid max-w-5xl gap-10 lg:grid-cols-2 lg:items-center lg:gap-16">
-        <Reveal className="flex flex-col">
-          <SectionOpener eyebrow="Getting there" title={d.name || "The venue"} />
-          {d.address && (
-            <p
-              className="mt-7 max-w-md text-base leading-relaxed"
-              style={{ color: "var(--site-muted)" }}
-            >
-              {d.address}
-            </p>
-          )}
-          {href && (
-            <a
-              href={href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-8 inline-flex w-fit items-center gap-2 rounded-full px-6 py-3 text-sm font-medium text-white outline-none transition-opacity hover:opacity-90"
-              style={{ backgroundColor: "var(--site-primary)" }}
-            >
-              Get directions
-              <span aria-hidden>&rarr;</span>
-            </a>
-          )}
-        </Reveal>
+      <div className="mx-auto max-w-5xl">
+        <div className="grid gap-10 lg:grid-cols-2 lg:items-center lg:gap-16">
+          <Reveal className="flex flex-col">
+            <SectionOpener eyebrow="Getting there" title={d.name || "The venue"} />
+            {d.address && (
+              <p
+                className="mt-7 max-w-md text-base leading-relaxed"
+                style={{ color: "var(--site-muted)" }}
+              >
+                {d.address}
+              </p>
+            )}
+            {href && (
+              <a
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-8 inline-flex w-fit items-center gap-2 rounded-full px-6 py-3 text-sm font-medium text-white outline-none transition-opacity hover:opacity-90"
+                style={{ backgroundColor: "var(--site-primary)" }}
+              >
+                Get directions
+                <span aria-hidden>&rarr;</span>
+              </a>
+            )}
+          </Reveal>
 
-        <Reveal>
-          <div
-            className="relative flex aspect-[5/4] items-center justify-center overflow-hidden rounded-[1.25rem]"
-            style={{
-              backgroundColor: "var(--site-canvas)",
-              border:
-                "1px solid color-mix(in srgb, var(--site-gold) 45%, transparent)",
-            }}
-          >
-            <div className="flex flex-col items-center gap-5 text-center">
-              <GeoMark className="h-16 w-16" />
-              {d.name && (
-                <p
-                  className="px-6 text-lg"
-                  style={display("var(--site-primary)")}
-                >
-                  {d.name}
-                </p>
-              )}
-              <AccentRule className="mx-auto" />
+          <Reveal>
+            <div
+              className="relative flex aspect-[5/4] items-center justify-center overflow-hidden rounded-[1.25rem]"
+              style={{
+                backgroundColor: "var(--site-canvas)",
+                border:
+                  "1px solid color-mix(in srgb, var(--site-gold) 45%, transparent)",
+              }}
+            >
+              <div className="flex flex-col items-center gap-5 text-center">
+                <GeoMark className="h-16 w-16" />
+                {d.name && (
+                  <p
+                    className="px-6 text-lg"
+                    style={display("var(--site-primary)")}
+                  >
+                    {d.name}
+                  </p>
+                )}
+                <AccentRule className="mx-auto" />
+              </div>
             </div>
-          </div>
-        </Reveal>
+          </Reveal>
+        </div>
+
+        {d.address && (
+          <Reveal className="mt-10 w-full">
+            <MapEmbed query={d.address} title={`Map of ${d.name || "the venue"}`} />
+          </Reveal>
+        )}
       </div>
     </section>
   );
@@ -548,7 +621,15 @@ function Gallery({ d }: { d?: GalleryData }) {
 /* ---------------------------------- Rsvp ---------------------------------- */
 /* Centered band on canvas with a framed form card on surface.                 */
 
-function Rsvp({ d, subdomain }: { d?: RsvpData; subdomain: string }) {
+function Rsvp({
+  d,
+  subdomain,
+  guestName,
+}: {
+  d?: RsvpData;
+  subdomain: string;
+  guestName?: string;
+}) {
   return (
     <section className="px-6 py-20 lg:px-8 lg:py-24">
       <div className="mx-auto max-w-xl">
@@ -588,7 +669,7 @@ function Rsvp({ d, subdomain }: { d?: RsvpData; subdomain: string }) {
                 "0 26px 56px -40px color-mix(in srgb, var(--site-ink) 65%, transparent)",
             }}
           >
-            <RsvpForm subdomain={subdomain} />
+            <RsvpForm subdomain={subdomain} data={d} guestName={guestName} />
           </div>
         </Reveal>
       </div>
