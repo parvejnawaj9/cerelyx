@@ -1,0 +1,83 @@
+{
+  "brand": {
+    "name": "Cerelyx",
+    "tagline": "Beautiful websites for the moments that matter."
+  },
+  "nav": {
+    "signIn": "Sign in",
+    "getStarted": "Get started",
+    "dashboard": "Dashboard",
+    "signOut": "Sign out"
+  },
+  "marketing": {
+    "heroEyebrow": "Wedding & event websites",
+    "heroTitle": "Your celebration deserves more than a group chat.",
+    "heroSubtitle": "Create a stunning website for your wedding or any life event, share it on your own address, and collect RSVPs — all in a few minutes.",
+    "heroCtaPrimary": "Create your site",
+    "heroCtaSecondary": "See a live example",
+    "featuresTitle": "Everything your guests need, in one place",
+    "feature1Title": "Designs that don't look templated",
+    "feature1Body": "Hand-crafted themes with real character — recolour and restyle them to match your celebration.",
+    "feature2Title": "Your own web address",
+    "feature2Body": "Publish to yourname.cerelyx.online in one tap. Share it once; it works everywhere.",
+    "feature3Title": "RSVPs without the spreadsheets",
+    "feature3Body": "Guests reply in seconds and you watch responses roll in — no more chasing.",
+    "stepsTitle": "Live in three steps",
+    "step1": "Pick a design",
+    "step1Body": "Choose a theme made for your kind of event.",
+    "step2": "Fill in the details",
+    "step2Body": "Names, dates, your story and the schedule — guided all the way.",
+    "step3": "Publish",
+    "step3Body": "Go live on your subdomain and share with everyone.",
+    "ctaTitle": "Ready to make something beautiful?",
+    "ctaBody": "It's free to start. No credit card, no fuss.",
+    "footerNote": "Made for life's once-in-a-lifetime moments."
+  },
+  "auth": {
+    "signInTitle": "Welcome back",
+    "signInSubtitle": "Sign in to keep building your celebration.",
+    "signUpTitle": "Create your account",
+    "signUpSubtitle": "Start your event website — it takes a minute.",
+    "email": "Email",
+    "password": "Password",
+    "continueWithGoogle": "Continue with Google",
+    "or": "or",
+    "signInCta": "Sign in",
+    "signUpCta": "Create account",
+    "haveAccount": "Already have an account?",
+    "noAccount": "New here?",
+    "switchToSignIn": "Sign in",
+    "switchToSignUp": "Create one"
+  },
+  "dashboard": {
+    "title": "Your events",
+    "subtitle": "Create, edit and publish your celebration sites.",
+    "newSite": "New event site",
+    "empty": "You haven't created an event yet.",
+    "emptyCta": "Create your first site",
+    "draft": "Draft",
+    "published": "Live",
+    "edit": "Edit",
+    "view": "View",
+    "openLive": "Open live site"
+  },
+  "editor": {
+    "saving": "Saving…",
+    "saved": "Saved",
+    "saveError": "Couldn't save — retrying",
+    "preview": "Preview",
+    "publish": "Publish",
+    "published": "Published",
+    "republish": "Re-publish",
+    "missingTitle": "A few things to finish first",
+    "subdomainLabel": "Web address",
+    "subdomainAvailable": "Available",
+    "subdomainTaken": "Taken"
+  },
+  "common": {
+    "back": "Back",
+    "cancel": "Cancel",
+    "save": "Save",
+    "loading": "Loading…"
+  }
+}

@@ -1,0 +1,154 @@
+rules_version = '2';
+
+// ---------------------------------------------------------------------------
+// Cerelyx Firestore security rules
+//
+// Principles (see project brief §3, §15):
+//   - Owners read/write only their own sites and subcollections.
+//   - Published OPEN sites are world-readable (public guest sites).
+//   - Published PRIVATE sites (sharedCode / guestVerify) are NOT client-readable;
+//     they are served by the server (Admin SDK bypasses these rules) after a
+//     server-side access check. Direct client reads are denied.
+//   - Guests may only CREATE rsvp/wish documents on a published site; they can
+//     never list or read the guest list.
+//   - Admins (users/{uid}.role == 'admin') have elevated read/moderation access.
+//   - Subdomain uniqueness + reverse lookup live in /subdomains and are written
+//     ONLY by the server (Admin SDK); all client access is denied.
+// ---------------------------------------------------------------------------
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---- helpers ----------------------------------------------------------
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isUser(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function userDoc(uid) {
+      return get(/databases/$(database)/documents/users/$(uid)).data;
+    }
+
+    function isAdmin() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && userDoc(request.auth.uid).role == 'admin';
+    }
+
+    function siteData(siteId) {
+      return get(/databases/$(database)/documents/sites/$(siteId)).data;
+    }
+
+    function siteExists(siteId) {
+      return exists(/databases/$(database)/documents/sites/$(siteId));
+    }
+
+    function isSiteOwner(siteId) {
+      return isSignedIn() && siteExists(siteId)
+        && siteData(siteId).ownerId == request.auth.uid;
+    }
+
+    function isOpenPublished(siteId) {
+      return siteExists(siteId)
+        && siteData(siteId).status == 'published'
+        && siteData(siteId).privacy == 'open';
+    }
+
+    // ---- users ------------------------------------------------------------
+    match /users/{uid} {
+      allow read: if isUser(uid) || isAdmin();
+      // A user can create only their own profile doc, with role locked to 'user'.
+      allow create: if isUser(uid)
+        && request.resource.data.role == 'user'
+        && request.resource.data.uid == uid;
+      // Users may update their own profile but can never change server-owned
+      // fields: role (privilege), plan (billing entitlement), uid, createdAt.
+      allow update: if isUser(uid)
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.plan == resource.data.plan
+        && request.resource.data.createdAt == resource.data.createdAt;
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ---- sites ------------------------------------------------------------
+    match /sites/{siteId} {
+      // Public read ONLY for published open sites; otherwise owner/admin only.
+      allow get: if resource.data.status == 'published'
+                    && resource.data.privacy == 'open'
+                 || isSiteOwner(siteId)
+                 || isAdmin();
+      // Owner-scoped listing: the per-document predicate forces every list
+      // query to be filtered to the caller's own sites (referencing
+      // resource.data.ownerId makes an unfiltered collection read fail).
+      allow list: if isAdmin()
+                   || (isSignedIn() && resource.data.ownerId == request.auth.uid);
+
+      allow create: if isSignedIn()
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.status in ['draft', 'published'];
+
+      allow update: if (isSiteOwner(siteId)
+                        && request.resource.data.ownerId == resource.data.ownerId)
+                     || isAdmin();
+      allow delete: if isSiteOwner(siteId) || isAdmin();
+
+      // ---- editor draft (owner-only working copy; never public) -----------
+      // Holds in-progress edits; the public site doc holds the published
+      // snapshot. Keeps unpublished edits off the world-readable site doc.
+      match /editor/{docId} {
+        allow read, write: if isSiteOwner(siteId) || isAdmin();
+      }
+
+      // ---- guests (host-only; never exposed to guests) --------------------
+      match /guests/{guestId} {
+        allow read, write: if isSiteOwner(siteId) || isAdmin();
+      }
+
+      // ---- rsvps (guests submit via the server route; host/admin read) ----
+      match /rsvps/{rsvpId} {
+        allow read: if isSiteOwner(siteId) || isAdmin();
+        // Submissions go ONLY through the server route (/api/s/<sub>/rsvp),
+        // which validates (zod), sanitizes (DOMPurify) and rate-limits, using
+        // the Admin SDK (which bypasses these rules). Direct client writes are
+        // denied so the validation/rate-limit can never be bypassed.
+        allow create: if false;
+        allow update, delete: if isSiteOwner(siteId) || isAdmin();
+      }
+
+      // ---- wishes / guestbook (moderated) ---------------------------------
+      match /wishes/{wishId} {
+        // Approved wishes on an open published site are public; host/admin see all.
+        allow get: if (isOpenPublished(siteId) && resource.data.approved == true)
+                     || isSiteOwner(siteId) || isAdmin();
+        allow list: if isSiteOwner(siteId) || isAdmin();
+        // As with rsvps, wish creation is server-route-only (Admin SDK).
+        allow create: if false;
+        allow update, delete: if isSiteOwner(siteId) || isAdmin();
+      }
+    }
+
+    // ---- subdomains: server-managed uniqueness + reverse lookup -----------
+    // All access is via the Admin SDK (server). Clients are fully denied.
+    match /subdomains/{subdomain} {
+      allow read, write: if false;
+    }
+
+    // ---- templates: public catalog, admin-managed ------------------------
+    match /templates/{templateId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ---- admin audit logs -------------------------------------------------
+    match /adminLogs/{logId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin();
+      allow update, delete: if false;
+    }
+  }
+}

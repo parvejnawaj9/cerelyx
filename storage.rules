@@ -1,0 +1,44 @@
+rules_version = '2';
+
+// ---------------------------------------------------------------------------
+// Cerelyx Storage security rules (see brief §10, §15)
+//
+//   - Host design photos live under sites/{siteId}/images/**.
+//   - Only the site owner (verified against the Firestore site doc) may write,
+//     and only validated image content under a per-file size cap.
+//   - Reads are public: these images are rendered on public guest sites and
+//     are non-sensitive. (Private-site image gating via signed URLs is a later
+//     refinement; flagged in the brief.)
+//   - Per-site storage QUOTA cannot be expressed in rules (no aggregate); it is
+//     enforced in the upload route at the app layer.
+// ---------------------------------------------------------------------------
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function ownsSite(siteId) {
+      return isSignedIn()
+        && firestore.exists(/databases/(default)/documents/sites/$(siteId))
+        && firestore.get(/databases/(default)/documents/sites/$(siteId)).data.ownerId == request.auth.uid;
+    }
+
+    function isValidImage() {
+      return request.resource.contentType.matches('image/.*')
+        && request.resource.size < 15 * 1024 * 1024; // 15 MB hard cap per file
+    }
+
+    match /sites/{siteId}/images/{allPaths=**} {
+      allow read: if true;
+      allow write: if ownsSite(siteId) && isValidImage();
+    }
+
+    // Everything else is denied by default.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,0 +1,127 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   Cerelyx product brand (builder + marketing chrome).
+   A calm "invitation studio" identity — warm paper, deep emerald, antique gold.
+   Deliberately NOT Inter / purple-gradient / cream-serif-terracotta.
+   Per-template guest-site theming is separate, driven by --site-* CSS variables.
+--------------------------------------------------------------------------- */
+@theme {
+  --color-canvas: #f7f4ee; /* warm paper */
+  --color-surface: #ffffff;
+  --color-raised: #fffdf9;
+  --color-ink: #1c1a17; /* warm near-black */
+  --color-muted: #6b6356; /* secondary text */
+  --color-faint: #736a5b; /* tertiary text (AA: 4.85:1 on canvas, 5.33:1 on white) */
+  --color-line: #e7e0d3; /* hairline borders */
+  --color-line-strong: #d8cfbd;
+
+  --color-brand: #14624d; /* deep emerald */
+  --color-brand-ink: #0c3a30; /* emerald for text on light */
+  --color-brand-soft: #e6efea; /* tinted surface */
+  --color-gold: #b08442; /* antique gold accent */
+  --color-gold-soft: #f3e8d4;
+  --color-rose: #b23a48; /* sparing warm highlight */
+
+  --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
+  --font-body: var(--font-hanken), ui-sans-serif, system-ui, sans-serif;
+
+  --radius-xs: 0.375rem;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  --radius-2xl: 2rem;
+
+  --shadow-soft: 0 1px 2px rgba(28, 26, 23, 0.04),
+    0 8px 24px -12px rgba(28, 26, 23, 0.18);
+  --shadow-lift: 0 2px 4px rgba(28, 26, 23, 0.05),
+    0 18px 50px -20px rgba(28, 26, 23, 0.28);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-line);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    font-weight: 480;
+    letter-spacing: -0.01em;
+  }
+
+  /* Visible, on-brand keyboard focus everywhere (brief §12.5). */
+  :where(a, button, input, textarea, select, [tabindex]):focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+    border-radius: var(--radius-xs);
+  }
+
+  ::selection {
+    background-color: var(--color-gold-soft);
+    color: var(--color-ink);
+  }
+
+  /* Respect reduced-motion globally (brief §4, §12.5). */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer utilities {
+  /* Subtle gold hairline used as a brand signature on the marketing surface. */
+  .rule-gold {
+    height: 1px;
+    background: linear-gradient(
+      to right,
+      transparent,
+      var(--color-gold) 20%,
+      var(--color-gold) 80%,
+      transparent
+    );
+  }
+
+  /* Reveal-on-load: content is visible BY DEFAULT (no-JS, reduced-motion, or
+     unsupported all show it). Only when motion is allowed do we hide + animate,
+     so published content can never render blank. */
+  @media (prefers-reduced-motion: no-preference) {
+    .cerelyx-reveal {
+      opacity: 0;
+      animation: cerelyx-rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+  }
+
+  @keyframes cerelyx-rise {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}

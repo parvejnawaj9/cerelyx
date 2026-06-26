@@ -1,0 +1,21 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "sites",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "ownerId", "order": "ASCENDING" },
+        { "fieldPath": "updatedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "rsvps",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "rsvpStatus", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

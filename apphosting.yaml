@@ -1,0 +1,64 @@
+# Firebase App Hosting backend configuration (production).
+# Docs: https://firebase.google.com/docs/app-hosting/configure
+#
+# WILDCARD SUBDOMAINS: add BOTH the apex (cerelyx.online) and the wildcard
+# (*.cerelyx.online) as custom domains on this backend in the Firebase console,
+# then point DNS as instructed. The app reads the real subdomain from the
+# X-Forwarded-Host header (src/lib/host.ts).
+#
+# Admin SDK: App Hosting provides Application Default Credentials automatically,
+# so no service-account key is needed in production.
+
+runConfig:
+  minInstances: 0
+  maxInstances: 100
+  concurrency: 80
+  cpu: 1
+  memoryMiB: 512
+
+env:
+  # --- Public app config ---
+  - variable: NEXT_PUBLIC_ROOT_DOMAIN
+    value: cerelyx.online
+    availability: [BUILD, RUNTIME]
+
+  - variable: NEXT_PUBLIC_USE_FIREBASE_EMULATORS
+    value: "0"
+    availability: [BUILD, RUNTIME]
+
+  # Firebase web config for project "cerelyx" (web API keys are public identifiers,
+  # not secrets — access is controlled by Security Rules).
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    value: AIzaSyBnCdcAmX-nx-pCY9RAPQ9qr5Hp1SrfYV8
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    value: cerelyx.firebaseapp.com
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: cerelyx
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    value: cerelyx.firebasestorage.app
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    value: "1076162267893"
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+    value: 1:1076162267893:web:3bc9738de693f9da1d53bc
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+    value: G-JXGRQLQKBV
+    availability: [BUILD, RUNTIME]
+
+  # --- Server-only config ---
+  - variable: FIREBASE_PROJECT_ID
+    value: cerelyx
+    availability: [RUNTIME]
+
+  # Secret used to sign guest-access cookies for private sites (HMAC).
+  # Create it once with:
+  #   firebase apphosting:secrets:set ACCESS_TOKEN_SECRET
+  # then grant the backend access when prompted.
+  - variable: ACCESS_TOKEN_SECRET
+    secret: ACCESS_TOKEN_SECRET
+    availability: [RUNTIME]
