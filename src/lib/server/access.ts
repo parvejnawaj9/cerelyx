@@ -14,13 +14,21 @@ import type { Site, VerifyField } from "@/lib/types";
  * new mode later without touching the gate or the lock screen.
  */
 
-// Fail closed: the signing key must be set in production, never the dev fallback.
-if (process.env.NODE_ENV === "production" && !process.env.ACCESS_TOKEN_SECRET) {
-  throw new Error(
-    "ACCESS_TOKEN_SECRET must be set in production (guest-access cookies)."
-  );
-}
+const IS_PROD = process.env.NODE_ENV === "production";
+const HAS_REAL_SECRET = Boolean(process.env.ACCESS_TOKEN_SECRET);
 const SECRET = process.env.ACCESS_TOKEN_SECRET || "dev-access-secret-local-only";
+
+// Fail closed at RUNTIME (not at build — the secret is injected by Secret
+// Manager only at runtime): never sign/verify with the dev fallback in prod.
+function secretOrThrow(): string {
+  if (IS_PROD && !HAS_REAL_SECRET) {
+    throw new Error(
+      "ACCESS_TOKEN_SECRET must be set in production (guest-access cookies)."
+    );
+  }
+  return SECRET;
+}
+
 const COOKIE_PREFIX = "__cerelyx_access_";
 const TTL_MS = 1000 * 60 * 60 * 24 * 30; // 30 days
 
@@ -38,13 +46,14 @@ function timingSafeEqual(a: string, b: string): boolean {
 
 function sign(siteId: string, exp: number): string {
   const mac = crypto
-    .createHmac("sha256", SECRET)
+    .createHmac("sha256", secretOrThrow())
     .update(`${siteId}.${exp}`)
     .digest("base64url");
   return `${exp}.${mac}`;
 }
 
 function tokenValid(siteId: string, token: string): boolean {
+  if (IS_PROD && !HAS_REAL_SECRET) return false; // fail closed
   const [expStr, mac] = token.split(".");
   const exp = Number(expStr);
   if (!exp || Date.now() > exp || !mac) return false;
